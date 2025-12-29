@@ -28,6 +28,7 @@ class Categorise:
             self.classify_ipv4()
         elif self.is_hash():
             self.type = "HASH"
+            self.virusTotal = VirusTotal(self.value, type="HASH")
         else:
             self.type = "unknown"
     
@@ -74,7 +75,7 @@ class Categorise:
             self.virusTotal = None
         elif ip.is_global:
             self.detail = "public"
-            self.virusTotal = VirusTotal(self.value)
+            self.virusTotal = VirusTotal(self.value, type="IP")
             self.shodan = Shodan(self.value)
         else:
             self.detail = "unknown"

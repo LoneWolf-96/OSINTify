@@ -33,6 +33,6 @@ class Shodan:
         port_list = json_data.get("ports", [])
         # Safely access "ports"
         if (len(port_list) >=6):
-            return "< 6 ports"
+            return ["< 6 ports"]
         else:
             return json_data.get("ports", [])

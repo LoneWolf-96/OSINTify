@@ -23,10 +23,13 @@ Type --help for usage instructions
 def results(Results, Name: str  ) -> None:
     if not Results.empty:
         print(pyfiglet.figlet_format(Name, font="small"))
-        print(tabulate(Results, tablefmt="grid", headers=IP_results.columns.tolist()))
+        print(tabulate(Results, tablefmt="grid", headers=Results.columns.tolist()))
 
 
 def osintify(input):
+    IP_results = pd.DataFrame()
+    HASH_results = pd.DataFrame()
+    
     for line in input:
         ioc = Categorise(line)
         
@@ -43,13 +46,12 @@ def osintify(input):
         if ioc.type == "HASH":
             HASH_results.at[ioc.value,"Type"] = ioc.type
             HASH_results.at[ioc.value,"Details"] = ioc.detail
+            HASH_results.at[ioc.value,"VT Score mal/sus/harmless"] = ioc.virusTotal.score() if ioc.virusTotal.score() else "N/A"
 
     results(IP_results, "IP Results")
-    results(HASH_results, "IP Results")
+    results(HASH_results, "Hash Results")
 
 
 if __name__ == '__main__':
     banner()
-    IP_results = pd.DataFrame()
-    HASH_results = pd.DataFrame()
     osintify(sys.stdin)

@@ -3,8 +3,8 @@ import os
 
 class VirusTotal:
     """Wrapper for VirusTotal API to retrieve IP-related information."""
-    def __init__(self, value: str):
-        self.value = value.strip()
+    def __init__(self, ioc: str, type: str):
+        self.value = ioc.strip()
         self.base_url = "https://www.virustotal.com/api/v3"
         VT_API_KEY = os.getenv("VT_API_KEY")
 
@@ -15,9 +15,9 @@ class VirusTotal:
 
         self.data = None        # Raw Response object
         self._json_data = None  # Parsed JSON
-        self.fetch()
+        self.fetch(type)
 
-    def fetch(self) -> bool:
+    def fetch(self, type) -> bool:
         """
         Fetch IP data from VirusTotal API.
         Returns True if successful, False on failure.
@@ -26,9 +26,15 @@ class VirusTotal:
             "accept": "application/json",
             "x-apikey": self.api_key
         })
+        
+        match type:
+            case "IP":
+                endpoint = f"/ip_addresses/{self.value}"
+            case "HASH":
+                endpoint = f"/files/{self.value}"
 
         try:
-            self.data = client.get(f"/ip_addresses/{self.value}")
+            self.data = client.get(endpoint)
             self._json_data = self.data.json()
             return True
         except Exception:
@@ -46,8 +52,10 @@ class VirusTotal:
         return d or default
 
     def asn(self) -> str | None:
-        """Return the ASN attribute, or None if missing."""
-        return self._get_attr("data", "attributes", "asn")
+        if not self.data:
+            return None 
+        else:
+            return str(self._get_attr("data", "attributes", "asn"))
     
 
     def owner(self) -> str | None:
@@ -56,8 +64,7 @@ class VirusTotal:
             return None 
         
         # Safely traverse the nested dictionary 
-        return ( 
-            self._get_attr("data", "attributes", "as_owner") )
+        return (self._get_attr("data", "attributes", "as_owner"))
 
 
 
@@ -67,12 +74,14 @@ class VirusTotal:
             return None 
         
         # Safely traverse the nested dictionary 
-        return ( 
-            self._json_data.get("data", {}).get("attributes", {}).get("country") )
+        return (self._get_attr("data", "attributes", "country"))
 
     def score(self) -> str:
         """Return the malicious/harmless votes as 'malicious/suspicious/harmless' string."""
-        malicious = self._get_attr("data", "attributes", "last_analysis_stats", "malicious", default="-")
-        suspicious = self._get_attr("data", "attributes", "last_analysis_stats", "suspicious", default="-")
-        harmless = self._get_attr("data", "attributes", "last_analysis_stats", "harmless", default="-")
-        return f"{malicious}/{suspicious}/{harmless}"
+        try:
+            malicious = self._get_attr("data", "attributes", "last_analysis_stats", "malicious", default="-")
+            suspicious = self._get_attr("data", "attributes", "last_analysis_stats", "suspicious", default="-")
+            harmless = self._get_attr("data", "attributes", "last_analysis_stats", "harmless", default="-")
+            return f"{malicious}/{suspicious}/{harmless}"
+        except Exception:
+            return "-/-/-"        
